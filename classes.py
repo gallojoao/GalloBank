@@ -99,16 +99,18 @@ def  consultar_extrato(numero_conta):
             print(f"Extrato da conta {conta.numero_conta}-{conta.agencia}:\n")
             print(f"Cliente: {conta.nome}, CPF: {conta.cpf}")
             print(f"Saldo atual: R${conta.saldo:.2f}")
-            print(f"Depósitos realizados: {conta._contador_depositos}")
-
-            print("Transações:")
-            print(f"{'ID':<10} {'Tipo':<10} {'Valor':<10} {'Data/Hora':<20}")
-            print("-" * 60)
-            for transacao in conta.depositar.__self__.__dict__.get('_contador_depositos', []):
-                print(f"{transacao.id:<10} {transacao.tipo:<10} {transacao.valor:<10} {datetime.now().strftime('%d/%m/%Y %H:%M:%S'):<20}")
-            print("-" * 60)
+            if conta._contador_depositos == 0:
+                print("Nenhuma transação realizada hoje.")
+            else:
+                print(f"Depósitos realizados: {conta._contador_depositos}")
+                print("Transações:")
+                print(f"{'ID':<10} {'Tipo':<10} {'Valor':<10} {'Data/Hora':<20}")
+                print("-" * 60)
+                for transacao in conta.depositar.__self__.__dict__.get('_contador_depositos', []):
+                    print(f"{transacao.id:<10} {transacao.tipo:<10} {transacao.valor:<10} {datetime.now().strftime('%d/%m/%Y %H:%M:%S'):<20}")
+                print("-" * 60)
             return
-    print("Conta não encontrada.")
+        print("Conta não encontrada.")
 
 def menu():
     print("\nBem-vindo ao Sistema Bancário!")
@@ -138,14 +140,20 @@ def main():
             criar_conta(nome, data_nascimento, cpf)
         
         elif escolha == '2':
+            if not contas:
+                print("Nenhuma conta cadastrada. Por favor, crie uma conta primeiro.")
+                continue
+            print("Contas disponíveis:")
+            for conta in contas:
+                print(f"{conta.numero_conta} - {conta.nome}")
             numero_conta = int(input("Digite o número da conta: "))
             valor = float(input("Digite o valor do depósito: "))
             for conta in contas:
                 if conta.numero_conta == numero_conta:
                     conta.depositar(valor)
                     break
-            else:
-                print("Conta não encontrada.")
+                else:
+                    print("Conta não encontrada.")
         
         elif escolha == '3':
             numero_conta = int(input("Digite o número da conta: "))
@@ -154,8 +162,8 @@ def main():
                 if conta.numero_conta == numero_conta:
                     conta.sacar(valor)
                     break
-            else:
-                print("Conta não encontrada.")
+                else:
+                    print("Conta não encontrada.")
         
         elif escolha == '4':
             numero_conta = int(input("Digite o número da conta: "))
@@ -163,8 +171,8 @@ def main():
                 if conta.numero_conta == numero_conta:
                     print(f"Saldo atual: R${conta.saldo:.2f}")
                     break
-            else:
-                print("Conta não encontrada.")
+                else:
+                    print("Conta não encontrada.")
         
         elif escolha == 'q':
             print("Saindo do sistema. Até logo!")
@@ -177,5 +185,5 @@ def main():
         else:
             print("Opção inválida. Tente novamente.")
 
-if __name__ == "__main__":
+if __name__ == "__ma    in__":
     main()
