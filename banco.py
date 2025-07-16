@@ -1,187 +1,201 @@
-# GalloBank - Sistema Bancário Simples
-# Este é um sistema bancário simples que permite criar contas, realizar depósitos, saques e consultar extratos.
-# O sistema registra transações com ID, tipo, valor e data/hora
-
-# Projeto desenvolvido para fins educacionais.
-
-# Importando bibliotecas necessárias
+# GalloBank - Sistema Bancário com Orientação a Objetos Avançada
+from abc import ABC, abstractmethod
 from datetime import datetime
-import uuid
 
-# Listas para armazenar contas e clientes
-contas = []
-clientes = []
+# ============================
+# CLASSES DE DOMÍNIO PRINCIPAIS
+# ============================
 
-# Definindo a classe Cliente
 class Cliente:
-    # Inicializa o cliente com nome, data de nascimento e CPF
     def __init__(self, nome, data_nascimento, cpf):
         self.nome = nome
         self.data_nascimento = data_nascimento
         self.cpf = cpf
+        self.contas = []
 
-    # Representação em string do cliente
+    def adicionar_conta(self, conta):
+        self.contas.append(conta)
+
     def __str__(self):
         return f"Cliente: {self.nome}, CPF: {self.cpf}, Data de Nascimento: {self.data_nascimento}"
 
-# Definindo a classe Transacao para registrar transações bancárias
-class Transacao:
-    # Inicializa a transação com tipo, valor e gera um ID único
-    def __init__(self, tipo, valor):
-        self.id = str(uuid.uuid4())[:8]
-        self.tipo = tipo
-        self.valor = valor
-        self.data_hora = datetime.now()
 
-    # Representação em string da transação
-    def __str__(self):
-        return f"{self.id:<10} {self.tipo:<10} R${self.valor:<10.2f} {self.data_hora.strftime('%d/%m/%Y %H:%M:%S')}"
-
-# Definindo a classe Conta que herda de Cliente
-class Conta(Cliente):
+class Conta:
     _contador_contas = 0
 
-    # Inicializa a conta com os dados do cliente e define saldo, agência e contador de depósitos
-    def __init__(self, nome, data_nascimento, cpf, agencia="0001"):
-        super().__init__(nome, data_nascimento, cpf)
+    def __init__(self, cliente):
         Conta._contador_contas += 1
-        self.numero_conta = Conta._contador_contas
-        self.agencia = agencia
-        self.saldo = 0.0
-        self._contador_depositos = 0
-        self.transacoes = []
+        self.numero = Conta._contador_contas
+        self.agencia = "0001"
+        self._cliente = cliente
+        self._saldo = 0.0
+        self._historico = Historico()
+        self._limite_depositos = 3
+        self._depositos_realizados = 0
 
-    # Método para depositar valores na conta
+    @property
+    def saldo(self):
+        return self._saldo
+
+    @property
+    def cliente(self):
+        return self._cliente
+
+    @property
+    def historico(self):
+        return self._historico
+
     def depositar(self, valor):
-        LIMITE = 3
-        LIMITE_DEPOSITO = 500.00
-
-        # Verifica se o limite de depósitos diários foi atingido 
-        if self._contador_depositos >= LIMITE:
+        if self._depositos_realizados >= self._limite_depositos:
             print("❌ Limite de depósitos diários atingido.")
-            return
+            return False
+        if valor > 0 and valor <= 500.00:
+            self._saldo += valor
+            self._depositos_realizados += 1
+            print(f"✅ Depósito de R${valor:.2f} realizado com sucesso!")
+            return True
+        print("❌ Valor de depósito inválido ou acima do limite.")
+        return False
 
-        # Verifica se o valor do depósito está dentro do limite permitido
-        if 0 < valor <= LIMITE_DEPOSITO:
-            self.saldo += valor
-            self._contador_depositos += 1
-            transacao = Transacao("Depósito", valor)
-            self.transacoes.append(transacao)
-            print(f"✅ Depósito de R${valor:.2f} realizado com sucesso. Transação ID: {transacao.id}")
-        else:
-            print("❌ Valor de depósito acima do limite permitido.")
-
-    # Método para sacar valores da conta
     def sacar(self, valor):
-        if 0 < valor <= self.saldo:
-            self.saldo -= valor
-            transacao = Transacao("Saque", valor)
-            self.transacoes.append(transacao)
-            print(f"✅ Saque de R${valor:.2f} realizado com sucesso. Transação ID: {transacao.id}")
-        else:
-            print("❌ Saldo insuficiente ou valor inválido.")
+        if valor <= 0:
+            print("❌ Valor de saque inválido.")
+            return False
+        if valor > self._saldo:
+            print("❌ Saldo insuficiente.")
+            return False
+        self._saldo -= valor
+        print(f"✅ Saque de R${valor:.2f} realizado com sucesso!")
+        return True
 
-    # Representação em string da conta
     def __str__(self):
-        return f"Conta {self.numero_conta}-{self.agencia}\n{self.nome}, CPF: {self.cpf} | Saldo: R${self.saldo:.2f}"
+        return f"Conta {self.numero}-{self.agencia}\n{self.cliente.nome}, CPF: {self.cliente.cpf} | Saldo: R${self._saldo:.2f}"
 
-# Função para criar uma nova conta
-def criar_conta(nome, data_nascimento, cpf):
-    cliente = Cliente(nome, data_nascimento, cpf)
-    conta = Conta(cliente.nome, cliente.data_nascimento, cliente.cpf)
-    contas.append(conta)
-    clientes.append(cliente)
-    print(f"✅ Conta criada com sucesso: {conta}")
-    return conta
 
-# Função para consultar o extrato de uma conta
-def consultar_extrato(numero_conta):
-    for conta in contas:
-        if conta.numero_conta == numero_conta:
-            print(f"\n📄 Extrato da Conta {conta.numero_conta}-{conta.agencia}")
-            print(f"Cliente: {conta.nome}, CPF: {conta.cpf}")
-            print(f"Saldo atual: R${conta.saldo:.2f}\n")
-            if not conta.transacoes:
-                print("Nenhuma transação realizada.")
-            else:
-                print(f"{'ID':<10} {'Tipo':<10} {'Valor':<10} {'Data/Hora':<20}")
-                print("-" * 60)
-                for t in conta.transacoes:
-                    print(t)
-                print("-" * 60)
+class Historico:
+    def __init__(self):
+        self._transacoes = []
+
+    def adicionar(self, transacao):
+        self._transacoes.append({
+            "tipo": transacao.__class__.__name__,
+            "valor": transacao.valor,
+            "data": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        })
+
+    def exibir(self):
+        if not self._transacoes:
+            print("Nenhuma transação realizada.")
             return
-    print("❌ Conta não encontrada.")
+        print(f"{'Tipo':<10} {'Valor':<10} {'Data/Hora':<20}")
+        print("-" * 50)
+        for t in self._transacoes:
+            print(f"{t['tipo']:<10} R${t['valor']:<10.2f} {t['data']:<20}")
+        print("-" * 50)
 
-# Função para exibir o menu principal
+
+# ============================
+# TRANSACOES ABSTRATAS E CONCRETAS
+# ============================
+
+class Transacao(ABC):
+    @property
+    @abstractmethod
+    def valor(self):
+        pass
+
+    @abstractmethod
+    def registrar(self, conta):
+        pass
+
+
+class Deposito(Transacao):
+    def __init__(self, valor):
+        self._valor = valor
+
+    @property
+    def valor(self):
+        return self._valor
+
+    def registrar(self, conta):
+        if conta.depositar(self._valor):
+            conta.historico.adicionar(self)
+
+
+class Saque(Transacao):
+    def __init__(self, valor):
+        self._valor = valor
+
+    @property
+    def valor(self):
+        return self._valor
+
+    def registrar(self, conta):
+        if conta.sacar(self._valor):
+            conta.historico.adicionar(self)
+
+
+# ============================
+# INTERFACE DE USUÁRIO
+# ============================
+
+clientes = []
+contas = []
+
+def criar_conta():
+    nome = input("Nome: ")
+    data_nascimento = input("Data de nascimento (DD/MM/AAAA): ")
+    cpf = input("CPF: ")
+    cliente = Cliente(nome, data_nascimento, cpf)
+    conta = Conta(cliente)
+    cliente.adicionar_conta(conta)
+    clientes.append(cliente)
+    contas.append(conta)
+    print(f"✅ Conta criada com sucesso: {conta}")
+
+def localizar_conta():
+    numero = int(input("Número da conta: "))
+    for conta in contas:
+        if conta.numero == numero:
+            return conta
+    print("❌ Conta não encontrada.")
+    return None
+
 def menu():
-    print("\n🏦 Bem-vindo ao GalloBank!")
-    print("Limite de depósito: R$ 500,00. Você pode realizar até 3 depósitos por dia.")
-    print("\nMenu:")
-    print("1. Criar Conta")
+    print("\n🏦 Bem-vindo ao GalloBank Avançado!")
+    print("Limites: 3 depósitos diários, R$500,00 por depósito.")
+    print("1. Criar conta")
     print("2. Depositar")
     print("3. Sacar")
-    print("4. Consultar Saldo")
-    print("5. Consultar Extrato")
+    print("4. Consultar extrato")
     print("q. Sair")
     return input("Escolha uma opção: ")
 
-# Função principal que executa o sistema bancário
 def main():
     while True:
-        escolha = menu()
-
-        if escolha == '1':
-            nome = input("Digite o nome do cliente: ")
-            data_nascimento = input("Digite a data de nascimento (DD/MM/AAAA): ")
-            cpf = input("Digite o CPF: ")
-            criar_conta(nome, data_nascimento, cpf)
-
-        elif escolha == '2':
-            if not contas:
-                print("❗ Nenhuma conta cadastrada. Crie uma conta primeiro.")
-                continue
-            print("Contas disponíveis:")
-            for conta in contas:
-                print(f"{conta.numero_conta} - {conta.nome}")
-            numero_conta = int(input("Digite o número da conta: "))
-            valor = float(input("Digite o valor do depósito: "))
-            for conta in contas:
-                if conta.numero_conta == numero_conta:
-                    conta.depositar(valor)
-                    break
-            else:
-                print("❌ Conta não encontrada.")
-
-        elif escolha == '3':
-            numero_conta = int(input("Digite o número da conta: "))
-            valor = float(input("Digite o valor do saque: "))
-            for conta in contas:
-                if conta.numero_conta == numero_conta:
-                    conta.sacar(valor)
-                    break
-            else:
-                print("❌ Conta não encontrada.")
-
-        elif escolha == '4':
-            numero_conta = int(input("Digite o número da conta: "))
-            for conta in contas:
-                if conta.numero_conta == numero_conta:
-                    print(f"Saldo atual: R${conta.saldo:.2f}")
-                    break
-            else:
-                print("❌ Conta não encontrada.")
-
-        elif escolha == '5':
-            numero_conta = int(input("Digite o número da conta para consultar o extrato: "))
-            consultar_extrato(numero_conta)
-
-        elif escolha == 'q':
-            print("👋 Saindo do sistema. Até logo!")
+        opcao = menu()
+        if opcao == '1':
+            criar_conta()
+        elif opcao == '2':
+            conta = localizar_conta()
+            if conta:
+                valor = float(input("Valor do depósito: "))
+                Deposito(valor).registrar(conta)
+        elif opcao == '3':
+            conta = localizar_conta()
+            if conta:
+                valor = float(input("Valor do saque: "))
+                Saque(valor).registrar(conta)
+        elif opcao == '4':
+            conta = localizar_conta()
+            if conta:
+                print(f"\n📄 Extrato da Conta {conta.numero}-{conta.agencia}")
+                conta.historico.exibir()
+        elif opcao == 'q':
+            print("👋 Encerrando o sistema. Até logo!")
             break
-
         else:
-            print("❗ Opção inválida. Tente novamente.")
+            print("❗ Opção inválida.")
 
-# Executa a função principal se o script for executado diretamente
 if __name__ == "__main__":
     main()
