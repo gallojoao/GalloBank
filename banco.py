@@ -30,7 +30,7 @@ class Conta:
         self._cliente = cliente
         self._saldo = 0.0
         self._historico = Historico()
-        self._limite_depositos = 3
+        self._limite_depositos = 10
         self._depositos_realizados = 0
 
     @property
@@ -163,7 +163,7 @@ def localizar_conta():
 
 def menu():
     print("\n🏦 Bem-vindo ao GalloBank Avançado!")
-    print("Limites: 3 depósitos diários, R$500,00 por depósito.")
+    print("Limites: 10 depósitos diários, R$500,00 por depósito.")
     print("1. Criar conta")
     print("2. Depositar")
     print("3. Sacar")
