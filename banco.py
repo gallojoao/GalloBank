@@ -95,6 +95,7 @@ class Historico:
             for idx, transacao in enumerate(self._transacoes, start=1):
                 arquivo.write(f"TRANSAÇÃO N{idx}\n")
                 arquivo.write(json.dumps(transacao, ensure_ascii=False, indent=2) + "\n")
+        return "transação adicionada com sucesso"
 
     def exibir(self):
         if not self._transacoes:
