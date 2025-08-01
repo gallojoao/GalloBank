@@ -1,6 +1,10 @@
 # GalloBank - Sistema Bancário com Orientação a Objetos Avançada
 from abc import ABC, abstractmethod
 from datetime import datetime
+from pathlib import Path
+
+ROOT_PATH = Path(__file__).parent
+
 
 # ============================
 # CLASSES DE DOMÍNIO PRINCIPAIS
@@ -77,11 +81,20 @@ class Historico:
         self._transacoes = []
 
     def adicionar(self, transacao):
+        global ROOT_PATH        
         self._transacoes.append({
             "tipo": transacao.__class__.__name__,
             "valor": transacao.valor,
             "data": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
         })
+        
+        import json
+        with open(ROOT_PATH / "log.txt", "a", encoding="utf-8") as arquivo:
+            arquivo.write(f"EXTRATO DO DIA {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n")
+            for idx, transacao in enumerate(self._transacoes, start=1):
+                arquivo.write(f"TRANSAÇÃO N{idx}\n")
+                arquivo.write(json.dumps(transacao, ensure_ascii=False, indent=2) + "\n")
 
     def exibir(self):
         if not self._transacoes:
